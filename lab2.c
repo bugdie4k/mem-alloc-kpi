@@ -108,7 +108,7 @@ void dump() {
     }
 
     printf("free pages: %lu\n", free_pgs);
-    printf("===================================================================\n");
+    printf("===================================================================\n\n");
 }
 
 //
@@ -248,7 +248,7 @@ void mem_free(blk_t blk) {
 void test() {
     mem_init(MEM_SIZE);
 
-    printf("mem_beg: %#14lx\n ", mem_beg);
+    printf("mem_beg: %#14lx\n", mem_beg);
     printf("mem_end: %#14lx\n", mem_end);
 
     blk_t a1 = mem_alloc(1);
