@@ -231,12 +231,6 @@ void mem_free(blk_t blk) {
 }
 
 void test() {
-    dump();
-    mem_alloc(1);
-    dump();
-}
-
-unsigned main(unsigned argc, char** argv) {
     mem_init(MEM_SIZE);
 
     printf("mem_beg: %#14lx\n ", mem_beg);
@@ -275,6 +269,10 @@ unsigned main(unsigned argc, char** argv) {
 
     dump();
 
+}
+
+unsigned main(unsigned argc, char** argv) {
+    test();
     return 0;
 }
 
