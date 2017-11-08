@@ -183,35 +183,10 @@ void occupy_pages_with_multiblk(void* pptr_arg, size_t pages_n) {
 
     for (size_t pg = 1; pg < pages_n; ++pg) {
         pptr = pptr + PAGE_SIZE * pg;
-
-        printf("---->\n");
-        dump_pg_head(pptr);
-
         p_set_num(pptr, pg);
-
-        dump_pg_head(pptr);
-        printf("---->\n");
-        printf("---->\n");
-        dump_pg_head(pptr);
-
         p_set_bsz(pptr, pages_n);
-
-        dump_pg_head(pptr);
-        printf("---->\n");
-        printf("---->\n");
-        dump_pg_head(pptr);
-
         p_set_as(pptr, MULTIPAGE);
-        dump_pg_head(pptr);
-
-        printf("---->\n");
-        printf("---->\n");
-        dump_pg_head(pptr);
-
         p_set_fs(pptr, OCCUPIED);
-        dump_pg_head(pptr);
-
-        printf("---->\n");
     }
 }
 
