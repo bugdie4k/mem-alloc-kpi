@@ -235,6 +235,20 @@ blk_t mem_alloc(size_t size) {
     }
 }
 
+void mem_free(blk_t blk) {
+     if (p_get_as(blk.pptr) == MULTIPAGE) {
+        int num = p_get_num(blk.pptr);
+        int tot = p_get_bsz(blk.pptr);
+        /// printf("%d, %d\n", num, tot);
+        for (void* pptr = blk.pptr; pptr != blk.pptr + tot * PAGE_SIZE; pptr += PAGE_SIZE) {
+            // printf("%#14lx\n", pptr);
+            p_set_fs(pptr, FREE);
+        }
+    } else {
+        p_set_num(blk.pptr, p_get_num(blk.pptr) - 1);
+    }
+}
+
 int main(int argc, char** argv) {
     mem_init(MEM_SIZE);
 
@@ -248,13 +262,23 @@ int main(int argc, char** argv) {
 
     dump();
 
+    mem_free(a1);
+    mem_free(a2);
+
+    dump();
+
     mem_alloc(10);
     mem_alloc(20);
     mem_alloc(30);
 
     dump();
 
-    mem_alloc(5000);
+    blk_t b1 = mem_alloc(5000);
+    mem_alloc(13000);
+
+    dump();
+
+    mem_free(b1);
 
     dump();
 
