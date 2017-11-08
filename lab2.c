@@ -74,7 +74,7 @@ void p_set_bsz(void* pptr, size_t blk_sz) {
 }
 
 size_t p_get_bsz(void* pptr) {
-    return (*(int)(pptr + 4) & PBSZ_MASK);
+    return (*(int*)(pptr + 4) & PBSZ_MASK) >> 16;
 }
 
 // page blocks num
@@ -183,6 +183,7 @@ void occupy_pages_with_multiblk(void* pptr_arg, size_t pages_n) {
 
     for (size_t pg = 1; pg < pages_n; ++pg) {
         pptr = pptr + PAGE_SIZE * pg;
+
         p_set_num(pptr, pg);
         p_set_bsz(pptr, pages_n);
         p_set_as(pptr, MULTIPAGE);
