@@ -43,36 +43,44 @@ void* mem_beg;
 void* mem_end;
 
 // page free status
-void p_set_fs(void* pptr, unsigned free) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pfs_mask) | (free & pfs_mask); }
-unsigned  p_get_fs(void* pptr) { return *(unsigned*)(pptr + 4) & pfs_mask; }
+void     p_set_fs(void* pptr, unsigned free) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pfs_mask) | (free & pfs_mask); }
+unsigned p_get_fs(void* pptr) { return *(unsigned*)(pptr + 4) & pfs_mask; }
 
 // page alloc status
-void p_set_as(void* pptr, unsigned alloc) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pas_mask) | ((alloc << 8) & pas_mask); }
-unsigned  p_get_as(void* pptr) { return (*(unsigned*)(pptr + 4) & pas_mask) >> 8; }
+void     p_set_as(void* pptr, unsigned alloc) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pas_mask) | ((alloc << 8) & pas_mask); }
+unsigned p_get_as(void* pptr) { return (*(unsigned*)(pptr + 4) & pas_mask) >> 8; }
 
 // page block size
-void p_set_bsz(void* pptr, unsigned blk_sz) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pbsz_mask) | ((blk_sz << 16) & pbsz_mask); }
-unsigned  p_get_bsz(void* pptr) { return (*(unsigned*)(pptr + 4) & pbsz_mask) >> 16; }
+void     p_set_bsz(void* pptr, unsigned blk_sz) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pbsz_mask) | ((blk_sz << 16) & pbsz_mask); }
+unsigned p_get_bsz(void* pptr) { return (*(unsigned*)(pptr + 4) & pbsz_mask) >> 16; }
 
 // page blocks num
-void p_set_num(void* pptr, unsigned num) { *(unsigned*)(pptr) = (*(unsigned*)(pptr) & ~pnum_mask) | (num & pnum_mask); }
-unsigned  p_get_num(void* pptr) { return (*(unsigned*)(pptr) & pnum_mask); }
+void     p_set_num(void* pptr, unsigned num) { *(unsigned*)(pptr) = (*(unsigned*)(pptr) & ~pnum_mask) | (num & pnum_mask); }
+unsigned p_get_num(void* pptr) { return (*(unsigned*)(pptr) & pnum_mask); }
 
 // dump
 
 void dump_pg_head(void* pptr) {
-    printf("paddr: %#14lx | %6s | %6s | %9s | %8s |\n", pptr, "NUM", "SIZE", "ALLOC", "FREE?");
-    printf("       %14s | %06lu | %06lu | %9s | %8s |\n",
+    unsigned blocks_p = p_get_as(pptr);
+    unsigned free_p = p_get_fs(pptr);
+
+    if (blocks_p) {
+        printf("paddr: %#14lx | %9s | %9s | %6s | %8s |\n", pptr, "FREE?", "ALLOC", "BLKS", "BLK SIZE");
+    } else {
+        printf("paddr: %#14lx | %9s | %9s | %6s | %8s |\n", pptr, "FREE?", "ALLOC", "PG#", "PGS");
+    }
+
+    printf("       %14s | %9s | %9s | %06lu |   %06lu |\n",
            "",
-           p_get_num(pptr),
-           p_get_bsz(pptr),
+           (p_get_fs(pptr)) ? "FREE" : "OCCUPIED",
            (p_get_as(pptr)) ? "BLOCKS" : "MULTIPAGE",
-           (p_get_fs(pptr)) ? "FREE" : "OCCUPIED");
-    printf("----------------------------------------------------------------\n");
+           p_get_num(pptr),
+           p_get_bsz(pptr));
+    printf("-------------------------------------------------------------------\n");
 }
 
 void dump() {
-    printf("============================= DUMP =============================\n");
+    printf("============================== DUMP ===============================\n");
 
     unsigned free_pgs = 0;
     for (void* pptr = mem_beg; pptr != mem_end; pptr += PAGE_SIZE) {
@@ -84,7 +92,7 @@ void dump() {
     }
 
     printf("free pages: %lu\n", free_pgs);
-    // printf("================================================================\n");
+    printf("===================================================================\n");
 }
 
 //
@@ -231,7 +239,7 @@ void test() {
 unsigned main(unsigned argc, char** argv) {
     mem_init(MEM_SIZE);
 
-    printf("mem_beg: %#14lx\n; ", mem_beg);
+    printf("mem_beg: %#14lx\n ", mem_beg);
     printf("mem_end: %#14lx\n", mem_end);
 
     blk_t a1 = mem_alloc(1);
