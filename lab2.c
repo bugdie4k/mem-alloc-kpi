@@ -71,11 +71,10 @@ size_t p_get_as(void* pptr) {
 
 void p_set_bsz(void* pptr, size_t blk_sz) {
     *(int*)(pptr + 4) = (*(int*)(pptr + 4) & ~PBSZ_MASK) | ((blk_sz << 16) & PBSZ_MASK);
-    // *(int*)(pptr) = (*(int*)(pptr) & ~(PBSZ_MASK >> 32)) | ((blk_sz << 16) & (PBSZ_MASK >> 32));
 }
 
 size_t p_get_bsz(void* pptr) {
-    return (DEREF(pptr) & PBSZ_MASK) >> 16;
+    return (*(int)(pptr + 4) & PBSZ_MASK);
 }
 
 // page blocks num
