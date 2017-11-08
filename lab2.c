@@ -17,12 +17,10 @@
 #define MULTIPAGE 0
 
 // sizes
-#define HEADER_SIZE 8    // 8b
-#define MIN_AREA_SIZE 8  // 4b
-#define PHEADER_SIZE 8
-#define PAGE_SIZE 4000   // 4Kb
-#define APAGE_SIZE 3992  // (PAGE_SIZE - PHEADER_SIZE)
-#define MEM_SIZE 4000000 // 4Mb = 1000 * 4Kb
+#define PHEADER_SIZE  8
+#define PAGE_SIZE     4000    // 4Kb
+#define APAGE_SIZE    3992    // (PAGE_SIZE - PHEADER_SIZE)
+#define MEM_SIZE      4000000 // 4Mb = 1000 * 4Kb
 
 #define ALIGN4(x) (((x) & (-1 - 3)) + ((((x) & 3) != 0) ? 4 : 0))
 
@@ -38,7 +36,7 @@ const int pbsz_mask = 0xFFFF0000;
 
 const int pnum_mask = 0x0000FFFF;
 
-// whole mem pointers
+// mem pointers
 void* mem_beg;
 void* mem_end;
 
@@ -222,8 +220,7 @@ void* get_blk_ptr(blk_t blk) {
 
 blk_t mem_alloc(unsigned size) {
     unsigned aligned_size = ALIGN4(size);
-    unsigned size_plus_header = aligned_size + HEADER_SIZE;
-    if (aligned_size + HEADER_SIZE <= APAGE_SIZE / 2) {
+    if (aligned_size <= APAGE_SIZE / 2) {
         return alloc_lt_page_size(aligned_size);
     } else {
         return alloc_gt_page_size((aligned_size / APAGE_SIZE) + 1);
