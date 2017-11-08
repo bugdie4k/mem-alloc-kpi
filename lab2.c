@@ -16,16 +16,6 @@
 #define BLOCKS 1
 #define MULTIPAGE 0
 
-// page masks
-//                 |0 0 N N B B A F |
-#define PFS_MASK  0x00000000000000FF
-//                 |0 0 N N B B A F |
-#define PAS_MASK  0x000000000000FF00
-//                 |0 0 N N B B A F |
-#define PBSZ_MASK 0x00000000FFFF0000
-//                 |0 0 N N B B A F |
-#define PNUM_MASK 0x0000FFFF00000000
-
 // sizes
 #define HEADER_SIZE 8    // 8b
 #define MIN_AREA_SIZE 8  // 4b
@@ -36,57 +26,37 @@
 
 #define ALIGN4(x) (((x) & (-1 - 3)) + ((((x) & 3) != 0) ? 4 : 0))
 
-// to 4 byte size_t
-#define CAST_SIZE_T(ptr) ((size_t*)(ptr))
-#define DEREF(ptr) *(CAST_SIZE_T(ptr))
+typedef struct {
+     void* pptr;
+     unsigned shift;
+} blk_t;
 
+// page masks
+const int pfs_mask =  0x000000FF;
+const int pas_mask =  0x0000FF00;
+const int pbsz_mask = 0xFFFF0000;
+
+const int pnum_mask = 0x0000FFFF;
+
+// whole mem pointers
 void* mem_beg;
 void* mem_end;
 
-typedef struct {
-     void* pptr;
-     size_t shift;
-} blk_t;
-
 // page free status
-void p_set_fs(void* pptr, size_t free) {
-    DEREF(pptr) = (DEREF(pptr) & ~PFS_MASK) | (free & PFS_MASK);
-}
-
-size_t p_get_fs(void* pptr) {
-    return DEREF(pptr) & PFS_MASK;
-}
+void p_set_fs(void* pptr, unsigned free) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pfs_mask) | (free & pfs_mask); }
+unsigned  p_get_fs(void* pptr) { return *(unsigned*)(pptr + 4) & pfs_mask; }
 
 // page alloc status
-
-void p_set_as(void* pptr, size_t alloc) {
-    DEREF(pptr) = (DEREF(pptr) & ~PAS_MASK) | ((alloc << 8) & PAS_MASK);
-}
-
-size_t p_get_as(void* pptr) {
-    return (DEREF(pptr) & PAS_MASK) >> 8;
-}
+void p_set_as(void* pptr, unsigned alloc) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pas_mask) | ((alloc << 8) & pas_mask); }
+unsigned  p_get_as(void* pptr) { return (*(unsigned*)(pptr + 4) & pas_mask) >> 8; }
 
 // page block size
-
-void p_set_bsz(void* pptr, size_t blk_sz) {
-    *(int*)(pptr + 4) = (*(int*)(pptr + 4) & ~PBSZ_MASK) | ((blk_sz << 16) & PBSZ_MASK);
-}
-
-size_t p_get_bsz(void* pptr) {
-    return (*(int*)(pptr + 4) & PBSZ_MASK) >> 16;
-}
+void p_set_bsz(void* pptr, unsigned blk_sz) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pbsz_mask) | ((blk_sz << 16) & pbsz_mask); }
+unsigned  p_get_bsz(void* pptr) { return (*(unsigned*)(pptr + 4) & pbsz_mask) >> 16; }
 
 // page blocks num
-
-
-void p_set_num(void* pptr, size_t num) {
-    DEREF(pptr) = (DEREF(pptr) & ~PNUM_MASK) | ((num << 32) & PNUM_MASK);
-}
-
-size_t p_get_num(void* pptr) {
-    return (DEREF(pptr) & PNUM_MASK) >> 32;
-}
+void p_set_num(void* pptr, unsigned num) { *(unsigned*)(pptr) = (*(unsigned*)(pptr) & ~pnum_mask) | (num & pnum_mask); }
+unsigned  p_get_num(void* pptr) { return (*(unsigned*)(pptr) & pnum_mask); }
 
 // dump
 
@@ -98,12 +68,13 @@ void dump_pg_head(void* pptr) {
            p_get_bsz(pptr),
            (p_get_as(pptr)) ? "BLOCKS" : "MULTIPAGE",
            (p_get_fs(pptr)) ? "FREE" : "OCCUPIED");
+    printf("----------------------------------------------------------------\n");
 }
 
 void dump() {
-    printf("----------------------------- DUMP -----------------------------\n");
+    printf("============================= DUMP =============================\n");
 
-    size_t free_pgs = 0;
+    unsigned free_pgs = 0;
     for (void* pptr = mem_beg; pptr != mem_end; pptr += PAGE_SIZE) {
         if (p_get_fs(pptr)) {
             ++free_pgs;
@@ -117,20 +88,19 @@ void dump() {
 }
 
 //
-
-void occupy_page_with_blocks(void* pptr, size_t blk_sz) {
+void occupy_page_with_blocks(void* pptr, unsigned blk_sz) {
     p_set_num(pptr, 0);
     p_set_fs(pptr, OCCUPIED);
     p_set_as(pptr, BLOCKS);
     p_set_bsz(pptr, blk_sz);
 }
 
-size_t not_out_of_page(void* pptr, void* ptr) {
+unsigned not_out_of_page(void* pptr, void* ptr) {
     return (abs(ptr - pptr) < PHEADER_SIZE) ? 1 : 0;
 }
 
 blk_t alloc_block(void* pptr) {
-    size_t new_num = p_get_num(pptr) + 1;
+    unsigned new_num = p_get_num(pptr) + 1;
     p_set_num(pptr, new_num);
     blk_t retval;
     retval.pptr = pptr;
@@ -138,7 +108,7 @@ blk_t alloc_block(void* pptr) {
     return retval;
 }
 
-void mem_init(size_t size) {
+void mem_init(unsigned size) {
     mem_beg = malloc(size);
     mem_end = mem_beg + MEM_SIZE;
 
@@ -147,12 +117,11 @@ void mem_init(size_t size) {
     }
 }
 
-blk_t alloc_lt_page_size(size_t blk_sz) {
+blk_t alloc_lt_page_size(unsigned blk_sz) {
     void* free_page = NULL;
     void* fits_size_page = NULL;
 
     for (void* pptr = mem_beg; pptr != mem_end; pptr += PAGE_SIZE) {
-        // printf("%x -- %u\n", DEREF(pptr), p_get_fs(pptr));
         if (p_get_fs(pptr)) {
             if (free_page == NULL) free_page = pptr;
         } else if ((p_get_as(pptr) == BLOCKS) && (p_get_bsz(pptr) == blk_sz)) {
@@ -173,7 +142,7 @@ blk_t alloc_lt_page_size(size_t blk_sz) {
     }
 }
 
-void occupy_pages_with_multiblk(void* pptr_arg, size_t pages_n) {
+void occupy_pages_with_multiblk(void* pptr_arg, unsigned pages_n) {
     void* pptr = pptr_arg;
 
     p_set_num(pptr, 0);
@@ -181,7 +150,7 @@ void occupy_pages_with_multiblk(void* pptr_arg, size_t pages_n) {
     p_set_as(pptr, MULTIPAGE);
     p_set_fs(pptr, OCCUPIED);
 
-    for (size_t pg = 1; pg < pages_n; ++pg) {
+    for (unsigned pg = 1; pg < pages_n; ++pg) {
         pptr = pptr + PAGE_SIZE * pg;
 
         p_set_num(pptr, pg);
@@ -192,7 +161,7 @@ void occupy_pages_with_multiblk(void* pptr_arg, size_t pages_n) {
 }
 
 // ыыыыы
-blk_t alloc_gt_page_size(size_t pages_n) {
+blk_t alloc_gt_page_size(unsigned pages_n) {
     unsigned prv_free = 0;
     unsigned free_found = 0;
     void *free_page1 = NULL;
@@ -225,9 +194,9 @@ void* get_blk_ptr(blk_t blk) {
     return blk.pptr + PHEADER_SIZE + blk.shift * p_get_bsz(blk.pptr);
 }
 
-blk_t mem_alloc(size_t size) {
-    size_t aligned_size = ALIGN4(size);
-    size_t size_plus_header = aligned_size + HEADER_SIZE;
+blk_t mem_alloc(unsigned size) {
+    unsigned aligned_size = ALIGN4(size);
+    unsigned size_plus_header = aligned_size + HEADER_SIZE;
     if (aligned_size + HEADER_SIZE <= APAGE_SIZE / 2) {
         return alloc_lt_page_size(aligned_size);
     } else {
@@ -237,22 +206,32 @@ blk_t mem_alloc(size_t size) {
 
 void mem_free(blk_t blk) {
      if (p_get_as(blk.pptr) == MULTIPAGE) {
-        int num = p_get_num(blk.pptr);
-        int tot = p_get_bsz(blk.pptr);
+        unsigned num = p_get_num(blk.pptr);
+        unsigned tot = p_get_bsz(blk.pptr);
         /// printf("%d, %d\n", num, tot);
         for (void* pptr = blk.pptr; pptr != blk.pptr + tot * PAGE_SIZE; pptr += PAGE_SIZE) {
             // printf("%#14lx\n", pptr);
             p_set_fs(pptr, FREE);
         }
     } else {
-        p_set_num(blk.pptr, p_get_num(blk.pptr) - 1);
+         if (p_get_num(blk.pptr) - 1) {
+             p_set_num(blk.pptr, p_get_num(blk.pptr) - 1);
+         } else {
+             p_set_fs(blk.pptr, FREE);
+         }
     }
 }
 
-int main(int argc, char** argv) {
+void test() {
+    dump();
+    mem_alloc(1);
+    dump();
+}
+
+unsigned main(unsigned argc, char** argv) {
     mem_init(MEM_SIZE);
 
-    printf("mem_beg: %#14lx; ", mem_beg);
+    printf("mem_beg: %#14lx\n; ", mem_beg);
     printf("mem_end: %#14lx\n", mem_end);
 
     blk_t a1 = mem_alloc(1);
@@ -267,20 +246,27 @@ int main(int argc, char** argv) {
 
     dump();
 
-    mem_alloc(10);
-    mem_alloc(20);
-    mem_alloc(30);
-
-    dump();
-
-    blk_t b1 = mem_alloc(5000);
-    mem_alloc(13000);
+    blk_t b1 = mem_alloc(10);
+    blk_t b2 = mem_alloc(20);
+    blk_t b3 = mem_alloc(30);
+    blk_t b4 = mem_alloc(30);
 
     dump();
 
     mem_free(b1);
+    mem_free(b2);
+
+    dump();
+
+    blk_t c1 = mem_alloc(5000);
+    mem_alloc(13000);
+
+    dump();
+
+    mem_free(c1);
 
     dump();
 
     return 0;
 }
+
