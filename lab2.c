@@ -43,20 +43,38 @@ void* mem_beg;
 void* mem_end;
 
 // page free status
-void     p_set_fs(void* pptr, unsigned free) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pfs_mask) | (free & pfs_mask); }
-unsigned p_get_fs(void* pptr) { return *(unsigned*)(pptr + 4) & pfs_mask; }
+void p_set_fs(void* pptr, int free) {
+    *(int*)(pptr + 4) = (*(int*)(pptr + 4) & ~pfs_mask) | (free & pfs_mask);
+}
+int  p_get_fs(void* pptr) {
+    return *(int*)(pptr + 4) & pfs_mask;
+}
 
 // page alloc status
-void     p_set_as(void* pptr, unsigned alloc) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pas_mask) | ((alloc << 8) & pas_mask); }
-unsigned p_get_as(void* pptr) { return (*(unsigned*)(pptr + 4) & pas_mask) >> 8; }
+void p_set_as(void* pptr, int alloc) {
+    *(int*)(pptr + 4) = (*(int*)(pptr + 4) & ~pas_mask)
+                      | ((alloc << 8) & pas_mask);
+}
+int  p_get_as(void* pptr) {
+    return (*(int*)(pptr + 4) & pas_mask) >> 8;
+}
 
 // page block size
-void     p_set_bsz(void* pptr, unsigned blk_sz) { *(unsigned*)(pptr + 4) = (*(unsigned*)(pptr + 4) & ~pbsz_mask) | ((blk_sz << 16) & pbsz_mask); }
-unsigned p_get_bsz(void* pptr) { return (*(unsigned*)(pptr + 4) & pbsz_mask) >> 16; }
+void p_set_bsz(void* pptr, int blk_sz) {
+    *(int*)(pptr + 4) = (*(int*)(pptr + 4) & ~pbsz_mask)
+                      | ((blk_sz << 16) & pbsz_mask);
+}
+int  p_get_bsz(void* pptr) {
+    return (*(int*)(pptr + 4) & pbsz_mask) >> 16;
+}
 
 // page blocks num
-void     p_set_num(void* pptr, unsigned num) { *(unsigned*)(pptr) = (*(unsigned*)(pptr) & ~pnum_mask) | (num & pnum_mask); }
-unsigned p_get_num(void* pptr) { return (*(unsigned*)(pptr) & pnum_mask); }
+void p_set_num(void* pptr, int num) {
+    *(int*)(pptr) = (*(int*)(pptr) & ~pnum_mask) | (num & pnum_mask);
+}
+int  p_get_num(void* pptr) {
+    return (*(int*)(pptr) & pnum_mask);
+}
 
 // dump
 
@@ -275,4 +293,3 @@ unsigned main(unsigned argc, char** argv) {
     test();
     return 0;
 }
-
